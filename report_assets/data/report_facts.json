@@ -58,8 +58,8 @@
     "test_f1_score": 0.7188
   },
   "curated_figures": {
-    "preprocessing_outliers.png": "D:\\trimister-2-assignment\\trimister-2-ml-Assignment\\report_assets\\figures\\preprocessing_outliers.png",
-    "decision_tree_structure.png": "D:\\trimister-2-assignment\\trimister-2-ml-Assignment\\report_assets\\figures\\decision_tree_structure.png",
-    "knn_performance.png": "D:\\trimister-2-assignment\\trimister-2-ml-Assignment\\report_assets\\figures\\knn_performance.png"
+    "preprocessing_outliers.png": "/workspaces/trimister-2-ml-Assignment/report_assets/figures/preprocessing_outliers.png",
+    "decision_tree_structure.png": "/workspaces/trimister-2-ml-Assignment/report_assets/figures/decision_tree_structure.png",
+    "knn_performance.png": "/workspaces/trimister-2-ml-Assignment/report_assets/figures/knn_performance.png"
   }
 }

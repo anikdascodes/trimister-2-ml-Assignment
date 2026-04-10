@@ -1,0 +1,313 @@
+Total cells: 63
+
+===== CELL 1 (markdown) =====
+First line: # Titanic Assignment Notebook
+Markdown length: 402
+
+===== CELL 2 (markdown) =====
+First line: ## Task A - Data Quality and Preprocessing
+Markdown length: 202
+
+===== CELL 3 (code) =====
+First line: from __future__ import annotations
+Code length: 836
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 4 (code) =====
+First line: df = pd.read_csv(DATA_PATH)
+Code length: 74
+Outputs: 2 | has_error=False | has_image=False
+
+===== CELL 5 (markdown) =====
+First line: ### A0. Readiness Check
+Markdown length: 159
+
+===== CELL 6 (markdown) =====
+First line: ### A1. Initial Dataset Understanding
+Markdown length: 159
+
+===== CELL 7 (code) =====
+First line: summary_df = pd.DataFrame({
+Code length: 209
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 8 (code) =====
+First line: print("Column names:")
+Code length: 190
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 9 (code) =====
+First line: attribute_types = pd.DataFrame({
+Code length: 718
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 10 (code) =====
+First line: fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+Code length: 613
+Outputs: 1 | has_error=False | has_image=True
+
+===== CELL 11 (markdown) =====
+First line: ### A1. Findings
+Markdown length: 414
+
+===== CELL 12 (markdown) =====
+First line: ### A2. Data Quality Review and Preprocessing Plan
+Markdown length: 188
+
+===== CELL 13 (code) =====
+First line: category_summary = {
+Code length: 654
+Outputs: 2 | has_error=False | has_image=False
+
+===== CELL 14 (code) =====
+First line: outlier_rows = []
+Code length: 644
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 15 (code) =====
+First line: fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+Code length: 440
+Outputs: 2 | has_error=False | has_image=True
+
+===== CELL 16 (markdown) =====
+First line: ### A2. Data Quality Decisions and Justification
+Markdown length: 615
+
+===== CELL 17 (code) =====
+First line: from sklearn.compose import ColumnTransformer
+Code length: 899
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 18 (code) =====
+First line: scaled_preprocessor = ColumnTransformer(
+Code length: 1675
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 19 (code) =====
+First line: preprocessed_feature_names = scaled_preprocessor.get_feature_names_out().tolist()
+Code length: 142
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 20 (markdown) =====
+First line: ### A3. Preprocessing Validation
+Markdown length: 405
+
+===== CELL 21 (markdown) =====
+First line: ## Task B - Baseline Model Training and Evaluation
+Markdown length: 264
+
+===== CELL 22 (code) =====
+First line: from sklearn.linear_model import LogisticRegression
+Code length: 1456
+Outputs: 0 | has_error=False | has_image=False
+
+===== CELL 23 (code) =====
+First line: logistic_regression = LogisticRegression(max_iter=1000, random_state=42)
+Code length: 395
+Outputs: 3 | has_error=False | has_image=True
+
+===== CELL 24 (code) =====
+First line: gaussian_nb = GaussianNB()
+Code length: 332
+Outputs: 3 | has_error=False | has_image=True
+
+===== CELL 25 (code) =====
+First line: baseline_results_df = pd.DataFrame(model_results)
+Code length: 148
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 26 (markdown) =====
+First line: ### B. Baseline Interpretation
+Markdown length: 352
+
+===== CELL 27 (markdown) =====
+First line: ## Task C - Decision Tree Learning and Interpretation
+Markdown length: 266
+
+===== CELL 28 (code) =====
+First line: from sklearn.model_selection import GridSearchCV
+Code length: 146
+Outputs: 0 | has_error=False | has_image=False
+
+===== CELL 29 (code) =====
+First line: decision_tree_baseline = DecisionTreeClassifier(random_state=42)
+Code length: 404
+Outputs: 3 | has_error=False | has_image=True
+
+===== CELL 30 (code) =====
+First line: decision_tree_param_grid = {
+Code length: 1295
+Outputs: 2 | has_error=False | has_image=False
+
+===== CELL 31 (code) =====
+First line: decision_tree_tuned = decision_tree_grid.best_estimator_
+Code length: 369
+Outputs: 3 | has_error=False | has_image=True
+
+===== CELL 32 (code) =====
+First line: decision_tree_results_df = pd.DataFrame([
+Code length: 215
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 33 (markdown) =====
+First line: ### C1. Tuning Outcome and Generalization Check
+Markdown length: 394
+
+===== CELL 34 (code) =====
+First line: interpretation_tree = fitted_models["Decision Tree (Baseline)"]
+Code length: 339
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 35 (code) =====
+First line: plt.figure(figsize=(14, 8))
+Code length: 439
+Outputs: 2 | has_error=False | has_image=True
+
+===== CELL 36 (code) =====
+First line: def extract_tree_paths(trained_tree, feature_names):
+Code length: 1406
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 37 (code) =====
+First line: interpreted_paths = pd.DataFrame([
+Code length: 868
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 38 (markdown) =====
+First line: ### C2. Tree Interpretation Notes
+Markdown length: 374
+
+===== CELL 39 (markdown) =====
+First line: ## Task D - Rule-Based Classification
+Markdown length: 224
+
+===== CELL 40 (code) =====
+First line: rule_based_tree = DecisionTreeClassifier(
+Code length: 447
+Outputs: 3 | has_error=False | has_image=True
+
+===== CELL 41 (code) =====
+First line: rule_tree_paths = extract_tree_paths(fitted_models["Rule-Based Tree"], tree_feature_names)
+Code length: 115
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 42 (code) =====
+First line: rule_selection_mask = (rule_tree_paths["purity"] >= 0.7) & (rule_tree_paths["samples"] >= 20)
+Code length: 443
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 43 (code) =====
+First line: print("Five explicit extracted rules:")
+Code length: 414
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 44 (markdown) =====
+First line: ### D. Rule Quality vs Performance
+Markdown length: 404
+
+===== CELL 45 (markdown) =====
+First line: ## Task E - kNN (Lazy Learning)
+Markdown length: 210
+
+===== CELL 46 (code) =====
+First line: from sklearn.model_selection import cross_validate
+Code length: 102
+Outputs: 0 | has_error=False | has_image=False
+
+===== CELL 47 (code) =====
+First line: knn_experiments = []
+Code length: 1215
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 48 (code) =====
+First line: plt.figure(figsize=(10, 5))
+Code length: 434
+Outputs: 2 | has_error=False | has_image=True
+
+===== CELL 49 (code) =====
+First line: best_knn_config = knn_results_df.sort_values(
+Code length: 143
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 50 (code) =====
+First line: best_knn_model = Pipeline([
+Code length: 566
+Outputs: 3 | has_error=False | has_image=True
+
+===== CELL 51 (markdown) =====
+First line: ### E. kNN Insights (Scaling + Bias/Variance)
+Markdown length: 496
+
+===== CELL 52 (markdown) =====
+First line: ## Task F - Ensemble Learning
+Markdown length: 219
+
+===== CELL 53 (code) =====
+First line: from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier
+Code length: 100
+Outputs: 0 | has_error=False | has_image=False
+
+===== CELL 54 (code) =====
+First line: random_forest = RandomForestClassifier(
+Code length: 383
+Outputs: 3 | has_error=False | has_image=True
+
+===== CELL 55 (code) =====
+First line: gradient_boosting = GradientBoostingClassifier(random_state=42)
+Code length: 378
+Outputs: 3 | has_error=False | has_image=True
+
+===== CELL 56 (code) =====
+First line: ada_boost = AdaBoostClassifier(random_state=42)
+Code length: 326
+Outputs: 3 | has_error=False | has_image=True
+
+===== CELL 57 (code) =====
+First line: ensemble_results_df = pd.DataFrame([
+Code length: 216
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 58 (markdown) =====
+First line: ### F. Ensemble Insights
+Markdown length: 355
+
+===== CELL 59 (markdown) =====
+First line: ## Task G - Final Comparison and Recommendation
+Markdown length: 204
+
+===== CELL 60 (code) =====
+First line: final_comparison_df = pd.DataFrame(model_results)
+Code length: 321
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 61 (code) =====
+First line: comparison_table_path = TABLE_DIR / "final_model_comparison.csv"
+Code length: 178
+Outputs: 1 | has_error=False | has_image=False
+
+===== CELL 62 (markdown) =====
+First line: ### Final Answers
+Markdown length: 936
+
+===== CELL 63 (markdown) =====
+First line: ## Submission Readiness and Rubric Alignment
+Markdown length: 1262
+
+===== REQUIREMENT KEYWORD COVERAGE =====
+Task A heading: True
+Task B heading: True
+Task C heading: True
+Task D heading: True
+Task E heading: True
+Task F heading: True
+Task G heading: True
+Logistic Regression: True
+Naive Bayes: True
+Decision Tree tuning params: True
+Rule count mention: True
+k list: True
+distance metric: True
+Confusion Matrix: True
+Accuracy Precision Recall F1: True
+ROC-AUC: True
+Final Answers section: True

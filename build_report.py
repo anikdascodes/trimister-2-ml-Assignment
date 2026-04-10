@@ -414,16 +414,6 @@ def page_two_story(styles: dict[str, ParagraphStyle], facts: dict[str, object]) 
     dataset = facts["dataset_summary"]
     missing = dataset["missing_values"]
     class_balance = dataset["class_balance"]
-    attribute_table = build_table(
-        [
-            ["Attribute type", "Columns"],
-            ["Ordinal", "Pclass"],
-            ["Nominal", "Sex, Embarked"],
-            ["Numeric", "Age, Fare, SibSp, Parch"],
-        ],
-        [1.35 * inch, 1.75 * inch],
-        font_size=7.6,
-    )
     summary_table = build_table(
         [
             ["Property", "Value"],
@@ -434,7 +424,17 @@ def page_two_story(styles: dict[str, ParagraphStyle], facts: dict[str, object]) 
             ["Missing values", f"Age {missing['Age']}, Cabin {missing['Cabin']}, Embarked {missing['Embarked']}"],
             ["Duplicate rows", str(dataset["duplicate_rows"])],
         ],
-        [1.55 * inch, 4.7 * inch],
+        [1.55 * inch, 4.75 * inch],
+        font_size=8.0,
+    )
+    attribute_table = build_table(
+        [
+            ["Attribute type", "Columns"],
+            ["Ordinal", "Pclass"],
+            ["Nominal", "Sex, Embarked"],
+            ["Numeric", "Age, Fare, SibSp, Parch"],
+        ],
+        [1.55 * inch, 4.75 * inch],
         font_size=8.0,
     )
     preprocessing_image = report_image(
@@ -442,7 +442,6 @@ def page_two_story(styles: dict[str, ParagraphStyle], facts: dict[str, object]) 
         max_width=6.2 * inch,
         max_height=2.9 * inch,
     )
-    summary_row = build_panel_table([[summary_table, attribute_table]], [3.75 * inch, 2.55 * inch], font_size=7.6)
     rationale_box = build_panel_table(
         [[
             panel_paragraph(
@@ -467,8 +466,10 @@ def page_two_story(styles: dict[str, ParagraphStyle], facts: dict[str, object]) 
             "The class distribution was moderately imbalanced at 549 non-survivors versus 342 survivors, so the analysis emphasized stratified splitting and F1-score rather than relying on accuracy alone.",
             styles["BodySmall"],
         ),
-        summary_row,
-        Spacer(1, 3),
+        summary_table,
+        Spacer(1, 4),
+        attribute_table,
+        Spacer(1, 4),
         Paragraph(
             "The dataset mixes ordinal, nominal, discrete, and continuous attributes. `Pclass` was treated as ordinal, "
             "`Sex` and `Embarked` as nominal, and `Age`, `Fare`, `SibSp`, and `Parch` as numeric features.",

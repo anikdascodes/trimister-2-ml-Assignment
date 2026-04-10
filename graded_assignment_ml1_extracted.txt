@@ -1,0 +1,250 @@
+===== PAGE 1 =====
+Graded Assignment  
+Course: Machine Learning 
+Assignment Title: End-to-End Supervised Learning Pipeline  
+Weightage: 20% of Total Course Grade 
+Deadline: 15 March 2026 (12:00 AM IST) to 12 April 2026 (11:59 PM IST) 
+Submission Format: PDF Report + Jupyter Notebook (.ipynb) 
+Submission Mode: Upload via Lumen → Week 7 → Graded Assignment 
+1. Objective 
+This assignment evaluates your ability to build a complete supervised learning workflow starting 
+from raw data preprocessing to training and comparing multiple classifiers including Decision 
+Trees, Rule-Based models, kNN, and Ensemble Learning methods. 
+You will also be evaluated on your ability to justify preprocessing decisions, evaluate models 
+correctly, and interpret results. 
+2. Task Description 
+You are given a dataset (any one from below options) and must build a classification system. 
+Dataset Options (Choose 1) 
+You may use any one dataset or any other of your choice: 
+1. UCI Heart Disease Dataset  
+Data link    https://www.kaggle.com/datasets/redwankarimsony/heart-disease-data 
+ 
+2. UCI Bank Marketing Dataset 
+Data link   https://www.kaggle.com/datasets/adityamhaske/bank-marketing-dataset 
+ 
+
+===== PAGE 2 =====
+3. Titanic Dataset 
+Data link   https://www.kaggle.com/datasets/yasserh/titanic-dataset 
+ 
+4. UCI Breast Cancer Wisconsin Dataset 
+Data link   https://www.kaggle.com/datasets/uciml/breast-cancer-wisconsin-data 
+ 
+Task A -Data Quality & Preprocessing  
+Perform the following: 
+1. Identify missing values, duplicates, and noisy/outlier data. 
+ 
+2. Explain the types of attributes: 
+ 
+○ Nominal 
+ 
+○ Ordinal 
+ 
+○ Numeric (Discrete/Continuous) 
+ 
+3. Apply preprocessing: 
+ 
+○ Handling missing values 
+ 
+○ Encoding categorical variables 
+ 
+○ Feature scaling (standardization/min-max) 
+ 
+4. Split dataset into Train/Test. 
+Task B -Model Training + Evaluation 
+Train at least 2 baseline supervised models: 
+● Logistic Regression 
+ 
+● Naive Bayes (optional) 
+ 
+Then evaluate using: 
+
+===== PAGE 3 =====
+● Confusion Matrix 
+ 
+● Accuracy 
+ 
+● Precision, Recall, F1-score 
+ 
+● ROC-AUC (if applicable) 
+ 
+ 
+Task C -Decision Tree Learning + Interpretation  
+1. Train a Decision Tree Classifier 
+ 
+2. Tune: 
+ 
+○ max_depth 
+ 
+○ min_samples_split 
+ 
+○ min_samples_leaf 
+ 
+3. Interpret the model: 
+ 
+○ Feature importance 
+ 
+○ Explain at least 2 decision paths (if possible) 
+Task D -Rule-Based Classification  
+Implement Rule-Based Classification using either: 
+Option 1 (Recommended) 
+● Use a rule extraction approach from decision tree (if rules are possible) 
+ 
+Option 2 
+● Use a library-based rule model (if available in your environment) 
+ 
+
+===== PAGE 4 =====
+You must: 
+● Show at least 5 rules 
+ 
+● Explain how rules affect interpretability vs performance 
+ 
+ 
+Task E -kNN (Lazy Learning)  
+Train a kNN classifier and experiment with: 
+● k = 1, 3, 5, 7, 9 
+ 
+● Different distance metrics (if possible) 
+ 
+You must also explain: 
+● Why scaling is critical for kNN 
+ 
+● How k affects bias/variance 
+ 
+Task F - Ensemble Learning  
+Train at least 2 ensemble models: 
+● Random Forest 
+ 
+● Gradient Boosting / XGBoost (if available) 
+ 
+● AdaBoost (optional) 
+ 
+Compare them against: 
+● Decision Tree 
+ 
+● kNN 
+ 
+● Baseline model 
+ 
+
+===== PAGE 5 =====
+Task G -Final Comparison + Recommendation 
+Create a final comparison table with: 
+Model Accuracy F1 
+Score 
+Notes 
+Then answer: 
+1. Which model performed best and why? 
+ 
+2. Which model is most interpretable and why? 
+ 
+3. If this model was deployed in real life, what risks exist? 
+3. Deliverables 
+ Please zip all files into a single zip file and then upload. 
+You must submit: 
+1) Report (PDF, max 6 pages) 
+Must include: 
+● Dataset description 
+ 
+● Preprocessing explanation 
+ 
+● Model comparisons 
+ 
+● Key graphs/tables 
+ 
+● Final conclusion 
+ 
+2) Jupyter Notebook (.ipynb) 
+Must contain: 
+● Clean runnable code 
+ 
+
+===== PAGE 6 =====
+● Proper headings 
+ 
+● Outputs and graphs 
+ 
+ 
+4. Evaluation Criteria (Rubric) 
+Criterion Excellent (5) Good (4) Satisfactory (3) Needs 
+Improvement 
+(2) 
+Poor (1) Weightage 
+Understanding of 
+Concepts 
+Covers 
+Week 2–7 
+deeply & 
+correctly 
+Minor gaps Basic 
+understanding 
+Misapplies 
+concepts 
+No clarity 20% 
+Analysis & 
+Reasoning 
+Strong 
+justifications 
++ clear logic 
+Mostly 
+logical 
+Weak 
+justification 
+Poor 
+reasoning 
+Incorrect 25% 
+Structure & 
+Clarity 
+Very clear, 
+well 
+organized 
+Minor 
+issues 
+Acceptable Unclear Messy 15% 
+Originality & 
+Creativity 
+Strong 
+insights & 
+comparisons 
+Some 
+originality 
+Limited Mostly copied Plagiarized 10% 
+Technical 
+Accuracy 
+Correct 
+pipeline + 
+models + 
+tuning 
+Minor bugs Works but weak Multiple errors Incomplete 20% 
+Presentation & 
+Formatting 
+Perfect 
+format & 
+clean 
+Minor 
+formatting 
+issues 
+Adequate Frequent 
+issues 
+Not 
+followed 
+10% 
+ 
+
+===== PAGE 7 =====
+5. Academic Integrity 
+● Plagiarism above 10% will result in a zero score or disciplinary action. 
+ 
+● Copying notebook/code from others is not allowed. 
+ 
+ 
+6. Tips for Success 
+● Start Week 2 tasks early (preprocessing takes time). 
+ 
+● kNN performance is highly dependent on scaling. 
+ 
+● Decision Trees + Rule-Based models are best for interpretability. 
+ 
+● Ensemble models usually give best performance -but explainability reduces. 
+ 

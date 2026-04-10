@@ -1,0 +1,10 @@
+model,accuracy,f1_score,roc_auc
+Decision Tree (Baseline),0.8268,0.7634,0.8032
+Logistic Regression,0.8045,0.7244,0.8437
+"kNN (k=9, manhattan)",0.7989,0.7188,0.8433
+Gaussian Naive Bayes,0.7877,0.7164,0.8191
+Random Forest,0.8045,0.7154,0.8395
+Gradient Boosting,0.7989,0.7143,0.8181
+Decision Tree (Tuned),0.7821,0.7111,0.8002
+AdaBoost,0.7821,0.6977,0.8249
+Rule-Based Tree,0.7765,0.6552,0.8144

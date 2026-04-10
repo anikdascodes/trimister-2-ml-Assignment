@@ -1,0 +1,6 @@
+feature,importance
+Sex_female,0.315
+Age,0.2698
+Fare,0.2349
+Pclass,0.1097
+Embarked_S,0.0227

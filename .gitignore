@@ -1,0 +1,7 @@
+.venv/
+.uv-cache/
+.ipython/
+.jupyter-data/
+.mplconfig/
+.tmp/
+__pycache__/

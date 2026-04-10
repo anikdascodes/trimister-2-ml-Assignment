@@ -1,0 +1,65 @@
+{
+  "title": "Machine Learning Assignment Report: Titanic Survival Prediction",
+  "institution": "BITS Pilani Digital",
+  "student_name": "Anik Das",
+  "roll_number": "2025em1100026",
+  "subject": "Machine Learning",
+  "term": "Trimester 2",
+  "dataset_summary": {
+    "rows": 891,
+    "columns": 12,
+    "target_column": "Survived",
+    "class_balance": {
+      "Did Not Survive (0)": 549,
+      "Survived (1)": 342
+    },
+    "missing_values": {
+      "Age": 177,
+      "Cabin": 687,
+      "Embarked": 2
+    },
+    "duplicate_rows": 0
+  },
+  "tree_tuning": {
+    "max_depth": null,
+    "min_samples_split": 10,
+    "min_samples_leaf": 1,
+    "cv_f1_score": 0.7502
+  },
+  "top_feature_importance": [
+    [
+      "Sex_female",
+      0.315
+    ],
+    [
+      "Age",
+      0.2698
+    ],
+    [
+      "Fare",
+      0.2349
+    ],
+    [
+      "Pclass",
+      0.1097
+    ],
+    [
+      "Embarked_S",
+      0.0227
+    ]
+  ],
+  "best_knn": {
+    "metric": "Manhattan",
+    "k": 9,
+    "cv_accuracy": 0.8273,
+    "cv_f1_score": 0.7574,
+    "cv_roc_auc": 0.869,
+    "test_accuracy": 0.7989,
+    "test_f1_score": 0.7188
+  },
+  "curated_figures": {
+    "preprocessing_outliers.png": "D:\\trimister-2-assignment\\trimister-2-ml-Assignment\\report_assets\\figures\\preprocessing_outliers.png",
+    "decision_tree_structure.png": "D:\\trimister-2-assignment\\trimister-2-ml-Assignment\\report_assets\\figures\\decision_tree_structure.png",
+    "knn_performance.png": "D:\\trimister-2-assignment\\trimister-2-ml-Assignment\\report_assets\\figures\\knn_performance.png"
+  }
+}

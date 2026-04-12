@@ -4,3 +4,5 @@ Age,0.2698
 Fare,0.2349
 Pclass,0.1097
 Embarked_S,0.0227
+SibSp,0.0195
+Parch,0.0121

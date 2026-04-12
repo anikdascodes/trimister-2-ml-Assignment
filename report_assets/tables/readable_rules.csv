@@ -1,6 +1,6 @@
 rule,prediction,samples,purity
-"Male passenger, age > 3.5, class > 1.5, fare <= 51.698",Did Not Survive,339,0.9
-"Female passenger, class <= 2.5, fare > 28.856, parch <= 1.5",Survived,71,1.0
-"Female passenger, class <= 2.5, fare <= 28.856, age <= 37",Survived,36,0.944
-"Female passenger, class > 2.5, Embarked = S, fare > 17.250",Did Not Survive,27,0.852
-"Female passenger, class > 2.5, Embarked != S, fare <= 8.083",Survived,23,0.87
+"Male, age > 3.5, Pclass > 1.5, fare ≤ 51.70",Did Not Survive,339,0.9
+"Female, Pclass ≤ 2.5, fare > 28.86, Parch ≤ 1.5",Survived,71,1.0
+"Female, Pclass ≤ 2.5, fare ≤ 28.86, age ≤ 37",Survived,36,0.944
+"Female, Pclass > 2.5, Embarked=S, fare > 17.25",Did Not Survive,27,0.852
+"Female, Pclass > 2.5, Embarked≠S, fare ≤ 8.08",Survived,23,0.87

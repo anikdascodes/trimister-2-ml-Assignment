@@ -26,40 +26,20 @@
     "min_samples_leaf": 1,
     "cv_f1_score": 0.7502
   },
-  "top_feature_importance": [
-    [
-      "Sex_female",
-      0.315
-    ],
-    [
-      "Age",
-      0.2698
-    ],
-    [
-      "Fare",
-      0.2349
-    ],
-    [
-      "Pclass",
-      0.1097
-    ],
-    [
-      "Embarked_S",
-      0.0227
-    ]
-  ],
   "best_knn": {
     "metric": "Manhattan",
     "k": 9,
-    "cv_accuracy": 0.8273,
     "cv_f1_score": 0.7574,
-    "cv_roc_auc": 0.869,
     "test_accuracy": 0.7989,
-    "test_f1_score": 0.7188
+    "test_f1_score": 0.7188,
+    "test_roc_auc": 0.8432
   },
   "curated_figures": {
-    "preprocessing_outliers.png": "/workspaces/trimister-2-ml-Assignment/report_assets/figures/preprocessing_outliers.png",
-    "decision_tree_structure.png": "/workspaces/trimister-2-ml-Assignment/report_assets/figures/decision_tree_structure.png",
-    "knn_performance.png": "/workspaces/trimister-2-ml-Assignment/report_assets/figures/knn_performance.png"
+    "target_distribution": "/media/anik/ANIK1/trimister-2-assignment/trimister-2-ml-Assignment/report_assets/figures/target_distribution.png",
+    "preprocessing_boxplots": "/media/anik/ANIK1/trimister-2-assignment/trimister-2-ml-Assignment/report_assets/figures/preprocessing_boxplots.png",
+    "feature_importances": "/media/anik/ANIK1/trimister-2-assignment/trimister-2-ml-Assignment/report_assets/figures/feature_importances.png",
+    "decision_tree": "/media/anik/ANIK1/trimister-2-assignment/trimister-2-ml-Assignment/report_assets/figures/decision_tree.png",
+    "knn_performance": "/media/anik/ANIK1/trimister-2-assignment/trimister-2-ml-Assignment/report_assets/figures/knn_performance.png",
+    "final_comparison": "/media/anik/ANIK1/trimister-2-assignment/trimister-2-ml-Assignment/report_assets/figures/final_comparison.png"
   }
 }

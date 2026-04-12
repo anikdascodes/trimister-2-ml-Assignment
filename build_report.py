@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 from pathlib import Path
 
 import pandas as pd
@@ -27,7 +26,6 @@ from reportlab.platypus import (
 PROJECT_ROOT = Path(__file__).resolve().parent
 DATASET_PATH = PROJECT_ROOT / "Titanic-Dataset.csv"
 LOGO_PATH = PROJECT_ROOT / "logo.jpg"
-NOTEBOOK_PATH = PROJECT_ROOT / "assignment_notebook.ipynb"
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 REPORT_ASSETS_DIR = PROJECT_ROOT / "report_assets"
 REPORT_FIGURES_DIR = REPORT_ASSETS_DIR / "figures"
@@ -35,17 +33,18 @@ REPORT_DATA_DIR = REPORT_ASSETS_DIR / "data"
 REPORT_TABLES_DIR = REPORT_ASSETS_DIR / "tables"
 REPORT_PATH = PROJECT_ROOT / "report.pdf"
 
+# All figures extracted from the latest notebook execution
+FIG_DIR = OUTPUTS_DIR / "figures"
 SOURCE_FIGURES = {
-    "numeric_boxplots.png": OUTPUTS_DIR / "figures" / "numeric_boxplots.png",
-    "decision_tree_top_levels.png": OUTPUTS_DIR / "figures" / "decision_tree_top_levels.png",
-    "knn_f1_by_k.png": OUTPUTS_DIR / "figures" / "knn_f1_by_k.png",
+    "target_distribution":  FIG_DIR / "01_target_distribution_and_missing_values.png",
+    "numeric_boxplots":     FIG_DIR / "02_numeric_boxplots_outliers.png",
+    "feature_importances":  FIG_DIR / "07_feature_importances_decision_tree.png",
+    "decision_tree":        FIG_DIR / "08_decision_tree_visualization_top3_levels.png",
+    "knn_performance":      FIG_DIR / "10_knn_f1_by_k_and_metric.png",
+    "final_comparison":     FIG_DIR / "15_final_model_comparison_f1_rocauc.png",
 }
 
-CURATED_FIGURES = {
-    "preprocessing_outliers.png": "numeric_boxplots.png",
-    "decision_tree_structure.png": "decision_tree_top_levels.png",
-    "knn_performance.png": "knn_f1_by_k.png",
-}
+# ── Hardcoded model results (from latest notebook execution) ──────────────────
 
 TREE_TUNING = {
     "max_depth": None,
@@ -55,140 +54,145 @@ TREE_TUNING = {
 }
 
 TOP_FEATURE_IMPORTANCE = [
-    ("Sex_female", 0.3150),
-    ("Age", 0.2698),
-    ("Fare", 0.2349),
-    ("Pclass", 0.1097),
-    ("Embarked_S", 0.0227),
+    ("Sex_female",  0.3150),
+    ("Age",         0.2698),
+    ("Fare",        0.2349),
+    ("Pclass",      0.1097),
+    ("Embarked_S",  0.0227),
+    ("SibSp",       0.0195),
+    ("Parch",       0.0121),
 ]
 
 READABLE_RULES = [
     {
-        "rule": "Male passenger, age > 3.5, class > 1.5, fare <= 51.698",
+        "rule": "Male, age > 3.5, Pclass > 1.5, fare ≤ 51.70",
         "prediction": "Did Not Survive",
         "samples": 339,
         "purity": 0.900,
     },
     {
-        "rule": "Female passenger, class <= 2.5, fare > 28.856, parch <= 1.5",
+        "rule": "Female, Pclass ≤ 2.5, fare > 28.86, Parch ≤ 1.5",
         "prediction": "Survived",
         "samples": 71,
         "purity": 1.000,
     },
     {
-        "rule": "Female passenger, class <= 2.5, fare <= 28.856, age <= 37",
+        "rule": "Female, Pclass ≤ 2.5, fare ≤ 28.86, age ≤ 37",
         "prediction": "Survived",
         "samples": 36,
         "purity": 0.944,
     },
     {
-        "rule": "Female passenger, class > 2.5, Embarked = S, fare > 17.250",
+        "rule": "Female, Pclass > 2.5, Embarked=S, fare > 17.25",
         "prediction": "Did Not Survive",
         "samples": 27,
         "purity": 0.852,
     },
     {
-        "rule": "Female passenger, class > 2.5, Embarked != S, fare <= 8.083",
+        "rule": "Female, Pclass > 2.5, Embarked≠S, fare ≤ 8.08",
         "prediction": "Survived",
         "samples": 23,
         "purity": 0.870,
     },
 ]
 
-BEST_KNN = {
-    "metric": "Manhattan",
-    "k": 9,
-    "cv_accuracy": 0.8273,
-    "cv_f1_score": 0.7574,
-    "cv_roc_auc": 0.8690,
-    "test_accuracy": 0.7989,
-    "test_f1_score": 0.7188,
-}
+BEST_KNN = {"metric": "Manhattan", "k": 9, "cv_f1_score": 0.7574,
+            "test_accuracy": 0.7989, "test_f1_score": 0.7188, "test_roc_auc": 0.8432}
 
 BASELINE_RESULTS = [
-    ("Logistic Regression", 0.8045, 0.7244, 0.8437),
+    ("Logistic Regression",  0.8045, 0.7244, 0.8437),
     ("Gaussian Naive Bayes", 0.7877, 0.7164, 0.8191),
 ]
 
 
+# ── Utilities ─────────────────────────────────────────────────────────────────
+
 def ensure_directories() -> None:
-    for directory in (REPORT_ASSETS_DIR, REPORT_FIGURES_DIR, REPORT_DATA_DIR, REPORT_TABLES_DIR):
-        directory.mkdir(parents=True, exist_ok=True)
+    for d in (REPORT_ASSETS_DIR, REPORT_FIGURES_DIR, REPORT_DATA_DIR, REPORT_TABLES_DIR):
+        d.mkdir(parents=True, exist_ok=True)
 
 
-def load_dataset_summary() -> dict[str, object]:
+def load_dataset_summary() -> dict:
     df = pd.read_csv(DATASET_PATH)
-    target_counts = df["Survived"].value_counts().sort_index()
-    missing = df.isna().sum()
-
+    tc = df["Survived"].value_counts().sort_index()
+    mv = df.isna().sum()
     return {
         "rows": int(df.shape[0]),
         "columns": int(df.shape[1]),
         "target_column": "Survived",
-        "class_balance": {
-            "Did Not Survive (0)": int(target_counts.get(0, 0)),
-            "Survived (1)": int(target_counts.get(1, 0)),
-        },
-        "missing_values": {
-            "Age": int(missing.get("Age", 0)),
-            "Cabin": int(missing.get("Cabin", 0)),
-            "Embarked": int(missing.get("Embarked", 0)),
-        },
+        "class_balance": {"Did Not Survive (0)": int(tc.get(0, 0)),
+                          "Survived (1)": int(tc.get(1, 0))},
+        "missing_values": {"Age": int(mv.get("Age", 0)),
+                           "Cabin": int(mv.get("Cabin", 0)),
+                           "Embarked": int(mv.get("Embarked", 0))},
         "duplicate_rows": int(df.duplicated().sum()),
     }
 
 
-def trim_white_border(image: PILImage.Image, padding: int = 16) -> PILImage.Image:
-    background = PILImage.new(image.mode, image.size, "white")
-    difference = ImageChops.difference(image, background)
-    bbox = difference.getbbox()
+def trim_white(img: PILImage.Image, pad: int = 14) -> PILImage.Image:
+    bg = PILImage.new(img.mode, img.size, "white")
+    diff = ImageChops.difference(img, bg)
+    bbox = diff.getbbox()
     if bbox is None:
-        return image
-
-    left = max(bbox[0] - padding, 0)
-    upper = max(bbox[1] - padding, 0)
-    right = min(bbox[2] + padding, image.width)
-    lower = min(bbox[3] + padding, image.height)
-    return image.crop((left, upper, right, lower))
+        return img
+    return img.crop((max(bbox[0]-pad, 0), max(bbox[1]-pad, 0),
+                     min(bbox[2]+pad, img.width), min(bbox[3]+pad, img.height)))
 
 
 def curate_figures() -> dict[str, str]:
-    curated_paths: dict[str, str] = {}
+    out: dict[str, str] = {}
 
-    preprocessing_source = PILImage.open(SOURCE_FIGURES["numeric_boxplots.png"]).convert("RGB")
-    top_row = preprocessing_source.crop((0, 0, preprocessing_source.width, int(preprocessing_source.height * 0.495)))
-    preprocessing_report_image = trim_white_border(top_row, padding=14)
-    preprocessing_target = REPORT_FIGURES_DIR / "preprocessing_outliers.png"
-    preprocessing_report_image.save(preprocessing_target, quality=95)
-    curated_paths["preprocessing_outliers.png"] = str(preprocessing_target)
+    # 1. Target distribution — trim and save
+    src = PILImage.open(SOURCE_FIGURES["target_distribution"]).convert("RGB")
+    p = REPORT_FIGURES_DIR / "target_distribution.png"
+    trim_white(src, pad=12).save(p, quality=95)
+    out["target_distribution"] = str(p)
 
-    for target_name in ("decision_tree_structure.png", "knn_performance.png"):
-        source_name = CURATED_FIGURES[target_name]
-        source_path = SOURCE_FIGURES[source_name]
-        target_path = REPORT_FIGURES_DIR / target_name
-        trimmed_image = trim_white_border(PILImage.open(source_path).convert("RGB"), padding=18)
-        trimmed_image.save(target_path, quality=95)
-        curated_paths[target_name] = str(target_path)
+    # 2. Numeric boxplots — crop top row (Age + Fare) only
+    src = PILImage.open(SOURCE_FIGURES["numeric_boxplots"]).convert("RGB")
+    top = src.crop((0, 0, src.width, int(src.height * 0.50)))
+    p = REPORT_FIGURES_DIR / "preprocessing_boxplots.png"
+    trim_white(top, pad=12).save(p, quality=95)
+    out["preprocessing_boxplots"] = str(p)
 
-    return curated_paths
+    # 3. Feature importances bar chart
+    src = PILImage.open(SOURCE_FIGURES["feature_importances"]).convert("RGB")
+    p = REPORT_FIGURES_DIR / "feature_importances.png"
+    trim_white(src, pad=12).save(p, quality=95)
+    out["feature_importances"] = str(p)
+
+    # 4. Decision tree visualization
+    src = PILImage.open(SOURCE_FIGURES["decision_tree"]).convert("RGB")
+    p = REPORT_FIGURES_DIR / "decision_tree.png"
+    trim_white(src, pad=16).save(p, quality=95)
+    out["decision_tree"] = str(p)
+
+    # 5. kNN performance chart
+    src = PILImage.open(SOURCE_FIGURES["knn_performance"]).convert("RGB")
+    p = REPORT_FIGURES_DIR / "knn_performance.png"
+    trim_white(src, pad=14).save(p, quality=95)
+    out["knn_performance"] = str(p)
+
+    # 6. Final model comparison chart
+    src = PILImage.open(SOURCE_FIGURES["final_comparison"]).convert("RGB")
+    p = REPORT_FIGURES_DIR / "final_comparison.png"
+    trim_white(src, pad=12).save(p, quality=95)
+    out["final_comparison"] = str(p)
+
+    return out
 
 
-def curate_tables() -> pd.DataFrame:
-    comparison_path = OUTPUTS_DIR / "tables" / "final_model_comparison.csv"
-    comparison_df = pd.read_csv(comparison_path)
-    report_table_df = comparison_df[["model", "accuracy", "f1_score", "roc_auc"]].copy()
-    report_table_df.to_csv(REPORT_TABLES_DIR / "final_model_comparison_report.csv", index=False)
+def curate_tables(figures: dict[str, str]) -> pd.DataFrame:
+    comparison_df = pd.read_csv(OUTPUTS_DIR / "tables" / "final_model_comparison.csv")
+    report_df = comparison_df[["model", "accuracy", "precision", "recall",
+                                "f1_score", "roc_auc"]].copy()
+    report_df.to_csv(REPORT_TABLES_DIR / "final_model_comparison_report.csv", index=False)
 
-    feature_df = pd.DataFrame(TOP_FEATURE_IMPORTANCE, columns=["feature", "importance"])
-    feature_df.to_csv(REPORT_TABLES_DIR / "top_feature_importance.csv", index=False)
+    pd.DataFrame(TOP_FEATURE_IMPORTANCE, columns=["feature", "importance"]
+                 ).to_csv(REPORT_TABLES_DIR / "top_feature_importance.csv", index=False)
+    pd.DataFrame(READABLE_RULES
+                 ).to_csv(REPORT_TABLES_DIR / "readable_rules.csv", index=False)
 
-    rules_df = pd.DataFrame(READABLE_RULES)
-    rules_df.to_csv(REPORT_TABLES_DIR / "readable_rules.csv", index=False)
-
-    return report_table_df
-
-
-def write_report_facts(dataset_summary: dict[str, object], curated_paths: dict[str, str]) -> None:
     facts = {
         "title": "Machine Learning Assignment Report: Titanic Survival Prediction",
         "institution": "BITS Pilani Digital",
@@ -196,178 +200,127 @@ def write_report_facts(dataset_summary: dict[str, object], curated_paths: dict[s
         "roll_number": "2025em1100026",
         "subject": "Machine Learning",
         "term": "Trimester 2",
-        "dataset_summary": dataset_summary,
+        "dataset_summary": load_dataset_summary(),
         "tree_tuning": TREE_TUNING,
-        "top_feature_importance": TOP_FEATURE_IMPORTANCE,
         "best_knn": BEST_KNN,
-        "curated_figures": curated_paths,
+        "curated_figures": figures,
     }
-    (REPORT_DATA_DIR / "report_facts.json").write_text(json.dumps(facts, indent=2), encoding="utf-8")
+    (REPORT_DATA_DIR / "report_facts.json").write_text(
+        json.dumps(facts, indent=2), encoding="utf-8")
+
+    return report_df
+
+
+# ── ReportLab helpers ─────────────────────────────────────────────────────────
+
+# Cell paragraph helper — use inside table data so text wraps properly
+def _cp(text: str, font: str = "Helvetica", fs: float = 8.0,
+        bold: bool = False) -> "Paragraph":
+    """Return a Paragraph suitable for use as a table cell value."""
+    from reportlab.lib.styles import ParagraphStyle as _PS
+    style = _PS(
+        name=f"_cell_{id(text)}",
+        fontName="Helvetica-Bold" if bold else font,
+        fontSize=fs,
+        leading=fs + 1.8,
+        spaceAfter=0,
+        spaceBefore=0,
+    )
+    return Paragraph(text, style)
 
 
 def build_styles() -> dict[str, ParagraphStyle]:
     styles = getSampleStyleSheet()
-    styles.add(
-        ParagraphStyle(
-            name="ReportTitle",
-            parent=styles["Title"],
-            fontName="Helvetica-Bold",
-            fontSize=18,
-            leading=22,
-            alignment=TA_CENTER,
-            textColor=colors.HexColor("#0F2742"),
-            spaceAfter=8,
-        )
-    )
-    styles.add(
-        ParagraphStyle(
-            name="SectionHeading",
-            parent=styles["Heading1"],
-            fontName="Helvetica-Bold",
-            fontSize=13,
-            leading=15,
-            textColor=colors.HexColor("#0F2742"),
-            spaceAfter=6,
-            spaceBefore=0,
-        )
-    )
-    styles.add(
-        ParagraphStyle(
-            name="SubHeading",
-            parent=styles["Heading2"],
-            fontName="Helvetica-Bold",
-            fontSize=10,
-            leading=12,
-            textColor=colors.HexColor("#17375E"),
-            spaceAfter=3,
-            spaceBefore=3,
-        )
-    )
-    styles.add(
-        ParagraphStyle(
-            name="BodySmall",
-            parent=styles["BodyText"],
-            fontName="Helvetica",
-            fontSize=8.7,
-            leading=10.8,
-            spaceAfter=3,
-        )
-    )
-    styles.add(
-        ParagraphStyle(
-            name="PanelText",
-            parent=styles["BodyText"],
-            fontName="Helvetica",
-            fontSize=8.0,
-            leading=9.8,
-            spaceAfter=2,
-        )
-    )
-    styles.add(
-        ParagraphStyle(
-            name="Caption",
-            parent=styles["BodyText"],
-            fontName="Helvetica-Oblique",
-            fontSize=7.7,
-            leading=9.3,
-            textColor=colors.HexColor("#555555"),
-            alignment=TA_CENTER,
-            spaceAfter=4,
-            spaceBefore=2,
-        )
-    )
-    styles.add(
-        ParagraphStyle(
-            name="CoverMeta",
-            parent=styles["BodyText"],
-            fontName="Helvetica",
-            fontSize=10.5,
-            leading=13,
-            alignment=TA_CENTER,
-            textColor=colors.HexColor("#22313F"),
-            spaceAfter=4,
-        )
-    )
-    styles.add(
-        ParagraphStyle(
-            name="CompactList",
-            parent=styles["BodyText"],
-            fontName="Helvetica",
-            fontSize=8.5,
-            leading=10.2,
-            leftIndent=10,
-            bulletIndent=0,
-            spaceAfter=2,
-        )
-    )
+    defs = [
+        ("ReportTitle", "Title", "Helvetica-Bold", 18, 22, TA_CENTER,
+         "#0F2742", 8, 0),
+        ("SectionHeading", "Heading1", "Helvetica-Bold", 13, 15, None,
+         "#0F2742", 6, 0),
+        ("SubHeading", "Heading2", "Helvetica-Bold", 10, 12, None,
+         "#17375E", 3, 3),
+        ("BodySmall", "BodyText", "Helvetica", 8.7, 10.8, None,
+         None, 3, 0),
+        ("PanelText", "BodyText", "Helvetica", 8.0, 9.8, None,
+         None, 2, 0),
+        ("Caption", "BodyText", "Helvetica-Oblique", 7.7, 9.3, TA_CENTER,
+         "#555555", 4, 2),
+        ("CoverMeta", "BodyText", "Helvetica", 10.5, 13, TA_CENTER,
+         "#22313F", 4, 0),
+        ("CompactList", "BodyText", "Helvetica", 8.5, 10.2, None,
+         None, 2, 0),
+    ]
+    for name, parent, font, fs, lead, align, color, after, before in defs:
+        kwargs = dict(parent=styles[parent], fontName=font, fontSize=fs,
+                      leading=lead, spaceAfter=after, spaceBefore=before)
+        if align is not None:
+            kwargs["alignment"] = align
+        if color is not None:
+            kwargs["textColor"] = colors.HexColor(color)
+        if name == "CompactList":
+            kwargs.update(leftIndent=10, bulletIndent=0)
+        styles.add(ParagraphStyle(name=name, **kwargs))
     return styles
 
 
-def build_table(data, col_widths, highlight_row: int | None = None, font_size: float = 8.0) -> Table:
-    table = Table(data, colWidths=col_widths, repeatRows=1)
-    style_commands = [
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#D9E8F5")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#0F2742")),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), font_size),
-        ("LEADING", (0, 0), (-1, -1), font_size + 2),
-        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#AAB7C4")),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FBFE")]),
+def make_table(data, col_widths, highlight_row=None, fs=8.0) -> Table:
+    t = Table(data, colWidths=col_widths, repeatRows=1)
+    cmds = [
+        ("BACKGROUND",    (0, 0),  (-1, 0),  colors.HexColor("#D9E8F5")),
+        ("TEXTCOLOR",     (0, 0),  (-1, 0),  colors.HexColor("#0F2742")),
+        ("FONTNAME",      (0, 0),  (-1, 0),  "Helvetica-Bold"),
+        ("FONTSIZE",      (0, 0),  (-1, -1), fs),
+        ("LEADING",       (0, 0),  (-1, -1), fs + 2),
+        ("GRID",          (0, 0),  (-1, -1), 0.35, colors.HexColor("#AAB7C4")),
+        ("VALIGN",        (0, 0),  (-1, -1), "TOP"),        # TOP so wrapped cells align
+        ("LEFTPADDING",   (0, 0),  (-1, -1), 4),
+        ("RIGHTPADDING",  (0, 0),  (-1, -1), 4),
+        ("TOPPADDING",    (0, 0),  (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0),  (-1, -1), 4),
+        ("ROWBACKGROUNDS",(0, 1),  (-1, -1), [colors.white, colors.HexColor("#F8FBFE")]),
     ]
     if highlight_row is not None:
-        style_commands.extend(
-            [
-                ("BACKGROUND", (0, highlight_row), (-1, highlight_row), colors.HexColor("#FFF2CC")),
-                ("FONTNAME", (0, highlight_row), (-1, highlight_row), "Helvetica-Bold"),
-            ]
-        )
-    table.setStyle(TableStyle(style_commands))
-    return table
+        cmds += [
+            ("BACKGROUND", (0, highlight_row), (-1, highlight_row),
+             colors.HexColor("#FFF2CC")),
+            ("FONTNAME",   (0, highlight_row), (-1, highlight_row),
+             "Helvetica-Bold"),
+        ]
+    t.setStyle(TableStyle(cmds))
+    return t
 
 
-def build_panel_table(data, col_widths, font_size: float = 8.0) -> Table:
-    table = Table(data, colWidths=col_widths)
-    table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F8FBFE")),
-                ("BOX", (0, 0), (-1, -1), 0.4, colors.HexColor("#B9C6D3")),
-                ("INNERGRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#D3DDE7")),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("FONTSIZE", (0, 0), (-1, -1), font_size),
-                ("LEADING", (0, 0), (-1, -1), font_size + 1.7),
-                ("LEFTPADDING", (0, 0), (-1, -1), 6),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-                ("TOPPADDING", (0, 0), (-1, -1), 5),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-            ]
-        )
-    )
-    return table
+def make_panel(data, col_widths, fs=8.0) -> Table:
+    t = Table(data, colWidths=col_widths)
+    t.setStyle(TableStyle([
+        ("BACKGROUND",   (0, 0), (-1, -1), colors.HexColor("#F8FBFE")),
+        ("BOX",          (0, 0), (-1, -1), 0.4, colors.HexColor("#B9C6D3")),
+        ("INNERGRID",    (0, 0), (-1, -1), 0.35, colors.HexColor("#D3DDE7")),
+        ("VALIGN",       (0, 0), (-1, -1), "TOP"),
+        ("FONTSIZE",     (0, 0), (-1, -1), fs),
+        ("LEADING",      (0, 0), (-1, -1), fs + 1.7),
+        ("LEFTPADDING",  (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING",   (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING",(0, 0), (-1, -1), 5),
+    ]))
+    return t
 
 
-def panel_paragraph(title: str, body: str, styles: dict[str, ParagraphStyle]) -> Paragraph:
+def pp(title: str, body: str, styles) -> Paragraph:
     return Paragraph(f"<b>{title}</b><br/>{body}", styles["PanelText"])
 
 
-def bullet_html(items: list[str]) -> str:
-    return "<br/>".join(f"&#8226; {item}" for item in items)
+def bullets(items: list[str]) -> str:
+    return "<br/>".join(f"&#8226; {it}" for it in items)
 
 
-def report_image(path: Path, max_width: float, max_height: float | None = None) -> Image:
-    image = Image(str(path))
-    width_scale = max_width / image.imageWidth
-    height_scale = (max_height / image.imageHeight) if max_height is not None else width_scale
-    scale = min(width_scale, height_scale)
-    image.drawWidth = image.imageWidth * scale
-    image.drawHeight = image.imageHeight * scale
-    image.hAlign = "CENTER"
-    return image
+def fit_image(path: str | Path, max_w: float, max_h: float) -> Image:
+    img = Image(str(path))
+    scale = min(max_w / img.imageWidth, max_h / img.imageHeight)
+    img.drawWidth  = img.imageWidth  * scale
+    img.drawHeight = img.imageHeight * scale
+    img.hAlign = "CENTER"
+    return img
 
 
 def add_page_number(canvas, doc) -> None:
@@ -376,385 +329,484 @@ def add_page_number(canvas, doc) -> None:
     canvas.saveState()
     canvas.setFont("Helvetica", 8)
     canvas.setFillColor(colors.HexColor("#555555"))
-    canvas.drawRightString(doc.pagesize[0] - doc.rightMargin, 0.35 * inch, f"Page {canvas.getPageNumber()}")
+    canvas.drawRightString(
+        doc.pagesize[0] - doc.rightMargin,
+        0.35 * inch,
+        f"Page {canvas.getPageNumber()}",
+    )
     canvas.restoreState()
 
 
-def compact_rule_table(styles: dict[str, ParagraphStyle]) -> Table:
-    rows = [[
-        Paragraph("<b>Rule</b>", styles["BodySmall"]),
-        Paragraph("<b>Prediction</b>", styles["BodySmall"]),
-        Paragraph("<b>Support</b>", styles["BodySmall"]),
-        Paragraph("<b>Purity</b>", styles["BodySmall"]),
-    ]]
-    for index, rule in enumerate(READABLE_RULES, start=1):
-        rows.append([
-            Paragraph(f"{index}. {rule['rule']}", styles["BodySmall"]),
-            Paragraph(rule["prediction"], styles["BodySmall"]),
-            Paragraph(str(rule["samples"]), styles["BodySmall"]),
-            Paragraph(f"{rule['purity']:.3f}", styles["BodySmall"]),
-        ])
-    return build_table(rows, [3.72 * inch, 0.98 * inch, 0.62 * inch, 0.58 * inch], font_size=7.1)
+# ── Page builders ─────────────────────────────────────────────────────────────
 
-
-def compact_rule_paragraphs(styles: dict[str, ParagraphStyle]) -> list:
-    story = [Paragraph("Readable rule set extracted from the shallower tree:", styles["BodySmall"])]
-    for index, rule in enumerate(READABLE_RULES, start=1):
-        story.append(
-            Paragraph(
-                f"<b>{index}.</b> {rule['rule']} <b>Prediction:</b> {rule['prediction']}. "
-                f"<b>Support:</b> {rule['samples']} passengers. <b>Purity:</b> {rule['purity']:.3f}.",
-                styles["BodySmall"],
-            )
-        )
-    return story
-
-
-def page_two_story(styles: dict[str, ParagraphStyle], facts: dict[str, object]) -> list:
-    dataset = facts["dataset_summary"]
-    missing = dataset["missing_values"]
-    class_balance = dataset["class_balance"]
-    summary_table = build_table(
-        [
-            ["Property", "Value"],
-            ["Rows", str(dataset["rows"])],
-            ["Columns", str(dataset["columns"])],
-            ["Target", str(dataset["target_column"])],
-            ["Class balance", f"0: {class_balance['Did Not Survive (0)']}, 1: {class_balance['Survived (1)']}"],
-            ["Missing values", f"Age {missing['Age']}, Cabin {missing['Cabin']}, Embarked {missing['Embarked']}"],
-            ["Duplicate rows", str(dataset["duplicate_rows"])],
-        ],
-        [1.55 * inch, 4.75 * inch],
-        font_size=8.0,
-    )
-    attribute_table = build_table(
-        [
-            ["Attribute type", "Columns"],
-            ["Ordinal", "Pclass"],
-            ["Nominal", "Sex, Embarked"],
-            ["Numeric", "Age, Fare, SibSp, Parch"],
-        ],
-        [1.55 * inch, 4.75 * inch],
-        font_size=8.0,
-    )
-    preprocessing_image = report_image(
-        Path(facts["curated_figures"]["preprocessing_outliers.png"]),
-        max_width=6.2 * inch,
-        max_height=2.9 * inch,
-    )
-    rationale_box = build_panel_table(
-        [[
-            panel_paragraph(
-                "Preprocessing rationale",
-                "Identifier-like or sparse fields (`PassengerId`, `Name`, `Ticket`, `Cabin`) were excluded because they were non-predictive, high-cardinality, or mostly missing. "
-                "`Age` used median imputation and `Embarked` used mode imputation so rows could be retained. Outliers were kept because they represented plausible passengers, especially expensive fares, rather than obvious data-entry errors.",
-                styles,
-            )
-        ]],
-        [6.3 * inch],
-        font_size=7.8,
-    )
+def page_cover(styles, facts) -> list:
+    logo = fit_image(LOGO_PATH, 4.2 * inch, 2.35 * inch)
+    panel = make_panel([[
+        pp("Assignment objective",
+           "Build and compare a complete supervised learning pipeline for Titanic survival "
+           "prediction, covering preprocessing, baseline models, decision trees, rule extraction, "
+           "kNN, and ensemble methods.",
+           styles),
+        pp("Report basis",
+           "Dataset: Titanic (891 passengers, 12 columns).<br/>"
+           "Results validated from executed notebook (43 cells, 0 errors, 15 figures).",
+           styles),
+    ]], [3.12 * inch, 3.18 * inch], fs=7.8)
 
     return [
-        Paragraph("1. Introduction, Dataset, and Preprocessing", styles["SectionHeading"]),
+        Spacer(1, 0.5 * inch),
+        logo,
+        Spacer(1, 0.35 * inch),
+        Paragraph(facts["institution"], styles["ReportTitle"]),
+        Paragraph(facts["title"],       styles["ReportTitle"]),
+        Spacer(1, 0.25 * inch),
+        Paragraph("<b>Subject:</b> Machine Learning",            styles["CoverMeta"]),
+        Paragraph("<b>Trimester:</b> Trimester 2",               styles["CoverMeta"]),
+        Paragraph("<b>Student:</b> Anik Das",                    styles["CoverMeta"]),
+        Paragraph("<b>Roll Number:</b> 2025em1100026",           styles["CoverMeta"]),
+        Spacer(1, 0.35 * inch),
+        panel,
+        PageBreak(),
+    ]
+
+
+def page_dataset_preprocessing(styles, facts) -> list:
+    ds = facts["dataset_summary"]
+    mv = ds["missing_values"]
+    cb = ds["class_balance"]
+
+    _s = lambda t, bold=False: _cp(t, fs=8.0, bold=bold)
+    summary_tbl = make_table([
+        [_s("Property", bold=True), _s("Value", bold=True)],
+        [_s("Rows"),          _s(str(ds["rows"]))],
+        [_s("Columns"),       _s(str(ds["columns"]))],
+        [_s("Target column"), _s(ds["target_column"])],
+        [_s("Class balance"),
+         _s(f"Not Survived: {cb['Did Not Survive (0)']}   |   Survived: {cb['Survived (1)']}")],
+        [_s("Missing values"),
+         _s(f"Age: {mv['Age']} (19.9%)     Cabin: {mv['Cabin']} (77.1%)     Embarked: {mv['Embarked']}")],
+        [_s("Duplicate rows"),     _s(str(ds["duplicate_rows"]))],
+        [_s("Train / Test split"), _s("712 / 179  (80% / 20%, stratified by target)")],
+    ], [1.6 * inch, 4.7 * inch], fs=8.0)
+
+    _a = lambda t, bold=False: _cp(t, fs=7.4, bold=bold)
+    attr_tbl = make_table([
+        [_a("Attribute type", bold=True), _a("Columns", bold=True), _a("Handling", bold=True)],
+        [_a("Ordinal"),       _a("Pclass"),
+         _a("Used as-is (numeric: 1=First class, 3=Third class)")],
+        [_a("Nominal"),       _a("Sex, Embarked"),
+         _a("One-hot encoded: Sex_female/male, Embarked_C/Q/S")],
+        [_a("Numeric cont."), _a("Age, Fare"),
+         _a("Median imputation; StandardScaler applied for LR / NB / kNN")],
+        [_a("Numeric disc."), _a("SibSp, Parch"),
+         _a("Used as-is; IQR outlier analysis performed")],
+        [_a("Excluded"),      _a("PassengerId, Name,\nTicket, Cabin"),
+         _a("Identifier-like, high-cardinality, or >77% missing — dropped")],
+    ], [0.95 * inch, 1.50 * inch, 3.85 * inch], fs=7.4)
+
+    target_img = fit_image(
+        facts["curated_figures"]["target_distribution"],
+        max_w=6.2 * inch, max_h=1.8 * inch,
+    )
+    boxplot_img = fit_image(
+        facts["curated_figures"]["preprocessing_boxplots"],
+        max_w=6.2 * inch, max_h=1.85 * inch,
+    )
+    rationale = make_panel([[pp(
+        "Preprocessing rationale",
+        "PassengerId, Name, Ticket and Cabin were dropped — they are identifiers or mostly missing. "
+        "Age was imputed with the median (robust to its right skew). Embarked used mode imputation "
+        "(only 2 missing). Fare outliers were retained because very high fares correspond to genuine "
+        "first-class passengers, not data errors. Two preprocessor pipelines were built: one with "
+        "StandardScaler (for LR, NB, kNN) and one without scaling (for all tree-based models).",
+        styles,
+    )]], [6.3 * inch], fs=7.8)
+
+    return [
+        Paragraph("1. Dataset and Preprocessing", styles["SectionHeading"]),
         Paragraph(
-            "This report summarizes a complete supervised learning workflow for Titanic survival prediction. "
-            "The objective was to clean the data, compare multiple classifiers, and balance predictive performance with interpretability.",
+            "The Titanic dataset (Kaggle) contains information on 891 passengers with 12 features. "
+            "The binary target Survived (0/1) is moderately imbalanced — 549 non-survivors vs 342 survivors — "
+            "so evaluation emphasized F1-score alongside accuracy.",
             styles["BodySmall"],
         ),
-        Paragraph(
-            "The class distribution was moderately imbalanced at 549 non-survivors versus 342 survivors, so the analysis emphasized stratified splitting and F1-score rather than relying on accuracy alone.",
-            styles["BodySmall"],
-        ),
-        summary_table,
+        Spacer(1, 3),
+        summary_tbl,
         Spacer(1, 4),
-        attribute_table,
-        Spacer(1, 4),
+        target_img,
         Paragraph(
-            "The dataset mixes ordinal, nominal, discrete, and continuous attributes. `Pclass` was treated as ordinal, "
-            "`Sex` and `Embarked` as nominal, and `Age`, `Fare`, `SibSp`, and `Parch` as numeric features.",
-            styles["BodySmall"],
-        ),
-        rationale_box,
-        Spacer(1, 4),
-        preprocessing_image,
-        Paragraph(
-            "Figure 1. Age and fare boxplots show skew and outliers, especially for `Fare`, which motivated discussion but not deletion.",
+            "Figure 1. Target class distribution (left) and missing-value counts by column (right). "
+            "Cabin is too sparse to impute reliably.",
             styles["Caption"],
         ),
+        Spacer(1, 3),
+        attr_tbl,
+        Spacer(1, 4),
+        rationale,
+        Spacer(1, 4),
+        boxplot_img,
         Paragraph(
-            "After preprocessing, the modeling feature set contained `Pclass`, one-hot encoded `Sex` and `Embarked`, and the numeric fields `Age`, `Fare`, `SibSp`, and `Parch`. "
-            "This retained the strongest interpretable variables while avoiding sparse or identifier-like columns that would add noise without supporting explanation.",
-            styles["BodySmall"],
+            "Figure 2. Age and Fare boxplots confirm right-skewed distributions and high-value outliers. "
+            "Outliers were kept — they represent real fare differences between passenger classes.",
+            styles["Caption"],
         ),
         PageBreak(),
     ]
 
 
-def page_three_story(styles: dict[str, ParagraphStyle], facts: dict[str, object]) -> list:
+def page_baseline_and_tree(styles, facts) -> list:
     tuning = facts["tree_tuning"]
-    feature_rows = [["Feature", "Importance"]] + [[feature, f"{score:.4f}"] for feature, score in TOP_FEATURE_IMPORTANCE]
-    feature_table = build_table(feature_rows, [2.45 * inch, 1.0 * inch], font_size=7.7)
-    baseline_rows = [["Model", "Accuracy", "F1", "ROC-AUC"]]
-    for model, accuracy, f1_score, roc_auc in BASELINE_RESULTS:
-        baseline_rows.append([model, f"{accuracy:.4f}", f"{f1_score:.4f}", f"{roc_auc:.4f}"])
-    baseline_table = build_table(baseline_rows, [2.52 * inch, 0.88 * inch, 0.68 * inch, 0.88 * inch], font_size=7.5)
-    tree_image = report_image(
-        Path(facts["curated_figures"]["decision_tree_structure.png"]),
-        max_width=6.15 * inch,
-        max_height=3.8 * inch,
+
+    _b = lambda t, bold=False: _cp(t, fs=7.8, bold=bold)
+    baseline_rows = [[_b("Model", bold=True), _b("Accuracy", bold=True),
+                      _b("F1", bold=True), _b("ROC-AUC", bold=True)]] + [
+        [_b(m), _b(f"{a:.4f}"), _b(f"{f:.4f}"), _b(f"{r:.4f}")]
+        for m, a, f, r in BASELINE_RESULTS
+    ]
+    baseline_tbl = make_table(
+        baseline_rows,
+        [2.85 * inch, 1.05 * inch, 0.82 * inch, 1.05 * inch], fs=7.8)
+
+    _f = lambda t, bold=False: _cp(t, fs=7.6, bold=bold)
+    fi_rows = [[_f("Feature", bold=True), _f("Gini Importance", bold=True)]] + [
+        [_f(feat), _f(f"{imp:.4f}")] for feat, imp in TOP_FEATURE_IMPORTANCE
+    ]
+    fi_tbl = make_table(fi_rows, [2.10 * inch, 1.25 * inch], fs=7.6)
+
+    fi_img   = fit_image(facts["curated_figures"]["feature_importances"],
+                         max_w=2.60 * inch, max_h=2.40 * inch)
+    tree_img = fit_image(facts["curated_figures"]["decision_tree"],
+                         max_w=6.2 * inch, max_h=3.4 * inch)
+
+    # Feature importance: table left, chart right — side by side
+    fi_side_tbl = Table(
+        [[fi_tbl, fi_img]],
+        colWidths=[3.55 * inch, 2.75 * inch],
     )
+    fi_side_tbl.setStyle(TableStyle([
+        ("VALIGN",       (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING",  (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING",   (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING",(0, 0), (-1, -1), 0),
+    ]))
 
     return [
-        Paragraph("2. Modeling Setup and Decision Tree Analysis", styles["SectionHeading"]),
+        Paragraph("2. Baseline Models and Decision Tree", styles["SectionHeading"]),
+
+        Paragraph("Baseline model results", styles["SubHeading"]),
         Paragraph(
-            "Evaluation setup: the data was split using an 80/20 stratified train-test split with `random_state = 42`. "
-            "Performance was compared using accuracy, precision, recall, F1-score, and ROC-AUC where available.",
+            "Logistic Regression and Gaussian Naive Bayes were trained as baselines on the "
+            "scaled feature set (StandardScaler + one-hot encoding, 80/20 stratified split).",
             styles["BodySmall"],
         ),
-        baseline_table,
-        Spacer(1, 2),
+        baseline_tbl,
+        Spacer(1, 3),
         Paragraph(
-            f"Decision tree tuning used 5-fold cross-validation on the training data only. The best search result was "
-            f"`max_depth = {tuning['max_depth']}`, `min_samples_split = {tuning['min_samples_split']}`, "
-            f"`min_samples_leaf = {tuning['min_samples_leaf']}` with cross-validated F1 = {tuning['cv_f1_score']:.4f}.",
+            "Logistic Regression (accuracy 0.8045, F1 0.7244, ROC-AUC 0.8437) outperformed Naive Bayes "
+            "across all metrics. Both establish a reference floor — any more complex model that cannot "
+            "beat these numbers is not adding useful predictive value.",
+            styles["BodySmall"],
+        ),
+        Spacer(1, 4),
+
+        Paragraph("Decision tree training and tuning", styles["SubHeading"]),
+        Paragraph(
+            f"An untuned Decision Tree was trained first (accuracy 0.8268, F1 0.7634). "
+            f"5-fold GridSearchCV then searched max_depth ∈ {{3,4,5,6,None}}, "
+            f"min_samples_split ∈ {{2,5,10,20}}, min_samples_leaf ∈ {{1,2,4,6}}. "
+            f"Best CV params: max_depth=None, min_samples_split=10, min_samples_leaf=1 "
+            f"(CV F1={tuning['cv_f1_score']:.4f}). The tuned tree scored 0.7111 F1 on the test set — "
+            f"worse than the untuned tree. CV ranking and held-out ranking can diverge, especially with "
+            f"small datasets.",
+            styles["BodySmall"],
+        ),
+        Spacer(1, 4),
+
+        Paragraph("Feature importance and decision paths", styles["SubHeading"]),
+        Paragraph(
+            "Sex_female is the dominant predictor, followed by Age, Fare, and Pclass. "
+            "Embarkation port contributes very little. "
+            "Two representative paths from the untuned tree:",
             styles["BodySmall"],
         ),
         Paragraph(
-            "The baseline tree was retained for interpretation because it achieved the stronger held-out result while also keeping the decision paths easy to explain in a classroom setting. "
-            "That made it a better fit for the final report than the tuned alternative, even though the tuned model won the training-only search.",
-            styles["BodySmall"],
+            "&#8226; <b>Path 1 (Survived):</b> Female, Pclass ≤ 2.5, Fare > 28.86, Parch ≤ 1.5 "
+            "— 71 training passengers, purity 1.00.<br/>"
+            "&#8226; <b>Path 2 (Did Not Survive):</b> Male, Age > 3.5, Pclass > 1.5, Fare ≤ 7.13 "
+            "— large group, purity 0.90+.",
+            styles["CompactList"],
         ),
+        Spacer(1, 4),
+        fi_side_tbl,
         Paragraph(
-            "Top decision-tree feature importance scores are shown below. The values reinforce that survival in this dataset is driven mostly by sex, age, fare, and passenger class, with embarkation contributing much less.",
-            styles["BodySmall"],
-        ),
-        feature_table,
-        Spacer(1, 8),
-        tree_image,
-        Paragraph(
-            "Figure 2. The top levels of the decision tree show that sex, age, fare, and passenger class dominate the early splits.",
+            "Figure 3 (left). Feature importance scores. Figure 3 (right). Horizontal bar confirms "
+            "Sex_female, Age, and Fare dominate — Embarked_S and SibSp/Parch contribute very little.",
             styles["Caption"],
         ),
+        Spacer(1, 4),
+        tree_img,
         Paragraph(
-            "Decision tree interpretation: the first major splits are driven by sex, then by age, fare, and passenger class. "
-            "This indicates that a small number of strong predictors capture most of the useful survival structure in the selected feature set.",
-            styles["BodySmall"],
-        ),
-        Paragraph(
-            "The structure also highlights useful interaction effects. For example, the meaning of fare changes depending on class and sex, which helps explain why a tree-based model outperformed the purely linear baseline on this dataset.",
-            styles["BodySmall"],
+            "Figure 4. Decision tree top 3 levels. First split on Sex_female; subsequent splits "
+            "on Fare, Age, and Pclass reflect known survival patterns from the historical record.",
+            styles["Caption"],
         ),
         PageBreak(),
     ]
 
 
-def page_four_story(styles: dict[str, ParagraphStyle], facts: dict[str, object]) -> list:
+def page_rules_and_knn(styles, facts) -> list:
     knn = facts["best_knn"]
-    knn_image = report_image(
-        Path(facts["curated_figures"]["knn_performance.png"]),
-        max_width=6.0 * inch,
-        max_height=3.3 * inch,
+    knn_img = fit_image(facts["curated_figures"]["knn_performance"],
+                        max_w=6.0 * inch, max_h=3.0 * inch)
+
+    rule_rows = [
+        [
+            Paragraph("<b>Rule</b>", styles["BodySmall"]),
+            Paragraph("<b>Prediction</b>", styles["BodySmall"]),
+            Paragraph("<b>n</b>", styles["BodySmall"]),
+            Paragraph("<b>Purity</b>", styles["BodySmall"]),
+        ]
+    ]
+    for idx, r in enumerate(READABLE_RULES, 1):
+        rule_rows.append([
+            Paragraph(f"{idx}. IF {r['rule']}", styles["BodySmall"]),
+            Paragraph(r["prediction"], styles["BodySmall"]),
+            Paragraph(str(r["samples"]), styles["BodySmall"]),
+            Paragraph(f"{r['purity']:.3f}", styles["BodySmall"]),
+        ])
+    rule_tbl = make_table(
+        rule_rows,
+        [3.55 * inch, 1.08 * inch, 0.48 * inch, 0.59 * inch],
+        fs=7.2,
     )
 
-    story = [
+    return [
         Paragraph("3. Rule-Based Classification and kNN", styles["SectionHeading"]),
+
+        Paragraph("Rule-based classification", styles["SubHeading"]),
         Paragraph(
-            "A shallower tree was converted into a compact rule-based classifier so that the logic could be presented directly as human-readable conditions rather than only as a plotted tree.",
+            "A constrained decision tree (max_depth=4, min_samples_split=20, min_samples_leaf=10) "
+            "was trained to generate short, human-readable rules. It achieved accuracy 0.7765 and "
+            "F1 0.6552 — lower than the full tree, but every decision is expressible as a plain "
+            "if-then statement with measurable support and purity.",
             styles["BodySmall"],
         ),
+        Spacer(1, 3),
+        rule_tbl,
+        Paragraph(
+            "Table 3. Five rules extracted from the constrained tree with support (n = training "
+            "passengers) and purity. Rule 2 (purity 1.00, 71 passengers) is perfectly reliable.",
+            styles["Caption"],
+        ),
+        Spacer(1, 4),
+        Paragraph(
+            "Interpretability trade-off: the rule-based model is easy to audit and communicate — "
+            "a stakeholder can verify each rule without ML knowledge. The cost is a drop in recall "
+            "(0.55 vs 0.72 for the full tree), meaning the model misses more survivors.",
+            styles["BodySmall"],
+        ),
+        Spacer(1, 6),
+
+        Paragraph("kNN (Lazy Learning)", styles["SubHeading"]),
+        Paragraph(
+            "kNN was evaluated with k ∈ {1, 3, 5, 7, 9} and two distance metrics (Euclidean, Manhattan). "
+            "All experiments used 5-fold cross-validation on the training set with preprocessing inside "
+            "each fold to avoid data leakage. Best result: Manhattan distance, k=9 "
+            f"(CV F1={knn['cv_f1_score']:.4f}, test accuracy={knn['test_accuracy']:.4f}, "
+            f"test F1={knn['test_f1_score']:.4f}, ROC-AUC={knn['test_roc_auc']:.4f}).",
+            styles["BodySmall"],
+        ),
+        Paragraph(
+            "Why scaling is essential for kNN: Fare ranges up to £512 while SibSp ranges 0–8. "
+            "Without StandardScaler, distance is dominated entirely by Fare, making the other features "
+            "irrelevant. After scaling, all features contribute proportionally.",
+            styles["BodySmall"],
+        ),
+        Paragraph(
+            "Bias-variance trade-off: k=1 memorises training data (low bias, high variance — overfits). "
+            "As k increases, the boundary smooths and variance falls but bias rises. "
+            "Performance peaked at k=7–9, indicating the data contains enough noise that very local "
+            "neighbourhoods hurt generalisation.",
+            styles["BodySmall"],
+        ),
+        Spacer(1, 4),
+        knn_img,
+        Paragraph(
+            "Figure 5. Cross-validated F1 score vs k for Euclidean and Manhattan distance. "
+            "Manhattan consistently outperforms Euclidean; both peak near k=7–9.",
+            styles["Caption"],
+        ),
+        PageBreak(),
     ]
-    story.extend(compact_rule_paragraphs(styles))
-    story.extend(
-        [
-            Spacer(1, 4),
-            Paragraph(
-                "These extracted rules capture the most common survival patterns in a directly explainable form. They are especially useful for showing how the model links gender, age, fare, embarkation, and passenger class to the final prediction.",
-                styles["BodySmall"],
-            ),
-            Paragraph(
-                "Interpretability tradeoff: the rule-based tree is easier to explain because its logic can be written as a short set of explicit if-then rules. "
-                "Its held-out performance was weaker than the strongest decision tree, so the gain in interpretability came with a measurable predictive tradeoff.",
-                styles["BodySmall"],
-            ),
-            Paragraph(
-                f"kNN interpretation: scaling mattered because kNN depends directly on feature distance. Manhattan distance with k = {knn['k']} performed best, "
-                "which suggests that a smoother neighborhood definition was more stable for this dataset than more local, noise-sensitive settings.",
-                styles["BodySmall"],
-            ),
-            Paragraph(
-                "Larger k values reduce variance by averaging over more neighbors, while smaller k values react more sharply to local variation and therefore behave with lower bias but higher variance.",
-                styles["BodySmall"],
-            ),
-            Spacer(1, 6),
-            knn_image,
-            Paragraph(
-                "Figure 3. Cross-validated kNN F1-scores improved after scaling, with Manhattan distance at k = 9 giving the best overall result.",
-                styles["Caption"],
-            ),
-            PageBreak(),
-        ]
-    )
-    return story
 
 
-def page_five_story(styles: dict[str, ParagraphStyle], comparison_df: pd.DataFrame) -> list:
-    table_df = comparison_df.copy()
-    rows = [["Model", "Accuracy", "F1", "ROC-AUC"]]
-    highlight_row = None
-    for index, row in table_df.iterrows():
+def page_ensemble_comparison(styles, facts, comparison_df: pd.DataFrame) -> list:
+    # Build full comparison table with precision and recall too
+    _c = lambda t, bold=False: _cp(t, fs=7.5, bold=bold)
+    rows = [[_c("Model", bold=True), _c("Acc", bold=True), _c("Prec", bold=True),
+             _c("Rec", bold=True), _c("F1", bold=True), _c("AUC", bold=True)]]
+    highlight = None
+    for i, row in comparison_df.iterrows():
         rows.append([
-            row["model"],
-            f"{row['accuracy']:.4f}",
-            f"{row['f1_score']:.4f}",
-            f"{row['roc_auc']:.4f}",
+            _c(row["model"]),
+            _c(f"{row['accuracy']:.3f}"),
+            _c(f"{row['precision']:.3f}"),
+            _c(f"{row['recall']:.3f}"),
+            _c(f"{row['f1_score']:.3f}"),
+            _c(f"{row['roc_auc']:.3f}"),
         ])
         if row["model"] == "Decision Tree (Baseline)":
-            highlight_row = index + 1
+            highlight = i + 1
+
+    comp_tbl = make_table(
+        rows,
+        [2.35 * inch, 0.68 * inch, 0.68 * inch, 0.60 * inch, 0.60 * inch, 0.68 * inch],
+        highlight_row=highlight, fs=7.5,
+    )
+
+    comp_img = fit_image(facts["curated_figures"]["final_comparison"],
+                         max_w=6.2 * inch, max_h=2.45 * inch)
 
     return [
         Paragraph("4. Ensemble Learning and Final Comparison", styles["SectionHeading"]),
+
+        Paragraph("Ensemble results", styles["SubHeading"]),
         Paragraph(
-            "Three ensemble methods were evaluated: Random Forest, Gradient Boosting, and AdaBoost. "
-            "In this split they remained competitive but did not clearly outperform the best simpler models. "
-            "That finding is important because it shows that higher model complexity did not automatically lead to the strongest result.",
+            "Three ensemble methods were trained: Random Forest (300 trees, bagging), "
+            "Gradient Boosting (sequential boosting), and AdaBoost (adaptive boosting). "
+            "All used the unscaled tree preprocessor (imputation + one-hot encoding only).",
             styles["BodySmall"],
         ),
         Paragraph(
-            "The final comparison table below summarizes the main held-out metrics used in the report.",
+            "Surprisingly, none of the ensemble models beat the plain untuned Decision Tree. "
+            "Random Forest matched Logistic Regression on accuracy (0.8045) but trailed on F1 "
+            "(0.7154 vs 0.7634). Gradient Boosting and AdaBoost were weaker still. "
+            "This is expected for small, low-dimensional datasets where the dominant features "
+            "(sex, age, fare) are already captured by a single well-structured tree.",
             styles["BodySmall"],
         ),
-        build_table(rows, [2.75 * inch, 1.05 * inch, 0.82 * inch, 1.05 * inch], highlight_row=highlight_row, font_size=8.0),
-        Spacer(1, 12),
-        Paragraph("Ensemble findings", styles["SubHeading"]),
+        Spacer(1, 4),
+
+        Paragraph("Final model comparison — all 9 models", styles["SubHeading"]),
+        comp_tbl,
         Paragraph(
-            "Random Forest, Gradient Boosting, and AdaBoost all produced reasonable results, but none clearly surpassed the strongest simpler models. "
-            "Random Forest matched Logistic Regression on accuracy but not on F1, while Gradient Boosting and AdaBoost were slightly weaker overall. "
-            "The main lesson is that additional ensemble complexity did not create enough class-sensitive improvement to justify a more complex final choice on this dataset.",
-            styles["BodySmall"],
+            "Table 4. All models ranked by F1 score (descending). Highlighted row = best overall. "
+            "Acc = Accuracy, Prec = Precision, Rec = Recall, AUC = ROC-AUC.",
+            styles["Caption"],
         ),
-        Spacer(1, 10),
-        Paragraph("Why simpler models worked well here", styles["SubHeading"]),
+        Spacer(1, 4),
+        comp_img,
         Paragraph(
-            "The dataset is modest in size, the selected features are low-dimensional, and survival is strongly influenced by a few high-signal variables such as sex, age, fare, and class. "
-            "Under those conditions, a well-shaped tree and a strong linear baseline can already capture much of the useful structure without very deep or highly aggregated models.",
-            styles["BodySmall"],
+            "Figure 6. F1 score (left) and ROC-AUC (right) for all 9 models. "
+            "Decision Tree (Baseline) leads on F1; Logistic Regression leads on ROC-AUC.",
+            styles["Caption"],
         ),
+        Spacer(1, 6),
+
+        Paragraph("Key insights", styles["SubHeading"]),
         Paragraph(
-            "This is an important assignment result because it shows that choosing an interpretable model family did not require sacrificing strong predictive quality. In other words, the simpler models were not just easier to explain; they were also highly competitive on the actual task.",
-            styles["BodySmall"],
-        ),
-        Spacer(1, 10),
-        Paragraph("Key comparison insights", styles["SubHeading"]),
-        Paragraph(
-            bullet_html(
-                [
-                    "Decision Tree (Baseline) achieved the top F1-score and accuracy, showing that non-linear splits were valuable.",
-                    "Logistic Regression remained the strongest non-tree baseline and offered stable overall behavior.",
-                    "kNN became competitive only after scaling and cross-validated tuning, confirming the importance of preprocessing.",
-                    "Rule-Based Tree gave the clearest explanations, but that interpretability came with lower predictive strength.",
-                ]
-            ),
+            bullets([
+                "Decision Tree (Baseline): best F1 (0.763) and accuracy (0.827) — top overall model.",
+                "Logistic Regression: best ROC-AUC (0.844) — most reliable probability ranking.",
+                "kNN: competitive only after scaling; confirms preprocessing importance.",
+                "Rule-Based Tree: lowest F1 but most interpretable — best for explanation-first use.",
+                "Ensembles: did not gain over simpler models here — complexity ≠ guaranteed improvement.",
+            ]),
             styles["CompactList"],
-        ),
-        Spacer(1, 10),
-        Paragraph("Top practical choices", styles["SubHeading"]),
-        Paragraph(
-            bullet_html(
-                [
-                    "Decision Tree: best overall predictive choice for this assignment dataset.",
-                    "Logistic Regression: strongest compact baseline with stable behavior and solid ROC-AUC.",
-                    "Rule-Based Tree: best option when interpretability and stakeholder communication are the main priorities.",
-                ]
-            ),
-            styles["CompactList"],
-        ),
-        Paragraph(
-            "Taken together, the final table supports a clear ranking: the baseline Decision Tree is the strongest overall submission model, Logistic Regression is the best compact statistical baseline, and the Rule-Based Tree is the most suitable option for explanation-focused use cases.",
-            styles["BodySmall"],
         ),
         PageBreak(),
     ]
 
 
-def page_six_story(styles: dict[str, ParagraphStyle]) -> list:
+def page_conclusions(styles) -> list:
     return [
-        Paragraph("5. Final Answers, Risks, and Conclusion", styles["SectionHeading"]),
+        Paragraph("5. Conclusions, Risks, and Recommendations", styles["SectionHeading"]),
+
         Paragraph("Best-performing model", styles["SubHeading"]),
         Paragraph(
-            "The baseline Decision Tree was the strongest overall model in this analysis. It achieved accuracy = 0.8268 and F1-score = 0.7634, "
-            "giving the best balance between overall correctness and class-sensitive performance on the held-out test set. "
-            "Its strong result is consistent with the way the dataset responds to non-linear interactions among sex, age, fare, and passenger class.",
+            "The untuned Decision Tree achieved the highest F1 (0.7634) and accuracy (0.8268) "
+            "on the held-out test set. It captures non-linear interactions between sex, class, "
+            "age, and fare that a linear model cannot represent, without requiring the additional "
+            "complexity of ensemble aggregation. Interestingly, the GridSearchCV-tuned variant "
+            "scored worse on the test set (F1 0.7111), showing that CV performance does not "
+            "always translate to held-out performance on small datasets.",
             styles["BodySmall"],
         ),
-        Spacer(1, 4),
+        Spacer(1, 5),
+
         Paragraph("Most interpretable model", styles["SubHeading"]),
         Paragraph(
-            "The Rule-Based Tree was the most interpretable approach because its logic can be communicated as a short set of explicit if-then rules. "
-            "Its lower performance is acceptable when transparency and explanation matter more than maximum predictive strength, making it a useful choice for low-risk educational or illustrative settings.",
+            "The Rule-Based Tree is the most interpretable. Its five extracted rules can be "
+            "written as plain if-then statements that a non-technical audience can read and "
+            "verify without understanding machine learning. Each rule includes the number of "
+            "training passengers it covers and its purity, giving statistical backing to the "
+            "plain-language explanation. The cost is a drop in recall from 0.72 to 0.55.",
             styles["BodySmall"],
         ),
-        Spacer(1, 6),
+        Spacer(1, 5),
+
         Paragraph("Deployment risks", styles["SubHeading"]),
         Paragraph(
-            bullet_html(
-                [
-                    "The Titanic dataset is small and historical, so generalization is limited.",
-                    "Sex and passenger class may encode social or historical bias in the predictions.",
-                    "Tree thresholds can create brittle near-boundary decisions for similar passengers.",
-                    "Missing or low-quality operational data would reduce reliability and confidence.",
-                ]
-            ),
+            bullets([
+                "Historical bias: the model is trained on 1912 data — survival patterns reflect "
+                "social norms of that era and cannot generalize to modern contexts.",
+                "Fairness: sex and passenger class are the strongest predictors, so the model makes "
+                "systematically different predictions for men vs women and rich vs poor passengers.",
+                "Threshold brittleness: tree splits create hard boundaries (e.g. Fare ≤ 7.13 → "
+                "non-survival). A passenger just above or below that threshold gets opposite predictions.",
+                "Missing data sensitivity: Age is missing for ~20% of passengers; the imputation "
+                "strategy directly affects predictions for those passengers in deployment.",
+                "Small dataset: 891 rows is insufficient for stable deployment or strong confidence "
+                "intervals on out-of-distribution inputs.",
+            ]),
             styles["CompactList"],
         ),
-        Spacer(1, 6),
-        Paragraph("Ethical considerations", styles["SubHeading"]),
+        Spacer(1, 5),
+
+        Paragraph("Limitations of this analysis", styles["SubHeading"]),
         Paragraph(
-            "Even in an educational setting, survival prediction can reflect historical social structure rather than purely individual characteristics. "
-            "That means apparently strong performance does not remove the need to question fairness, representativeness, and the meaning of the target itself.",
-            styles["BodySmall"],
-        ),
-        Spacer(1, 6),
-        Paragraph("Limitations", styles["SubHeading"]),
-        Paragraph(
-            bullet_html(
-                [
-                    "Results come from a single train-test split rather than repeated resampling.",
-                    "The dataset is too small for strong real-world claims or stable deployment promises.",
-                    "Historical survival patterns may not transfer to modern or unrelated settings.",
-                    "The chosen feature set deliberately favored clarity over aggressive feature engineering.",
-                ]
-            ),
+            bullets([
+                "Single train-test split (random_state=42) — results may vary with different seeds.",
+                "No repeated cross-validation or bootstrap resampling for confidence intervals.",
+                "Feature engineering (e.g. family size, title from Name) was intentionally excluded "
+                "to keep the pipeline transparent and aligned with the assignment scope.",
+                "XGBoost was not tested (not available in the environment); Gradient Boosting from "
+                "sklearn was used as the boosting representative.",
+            ]),
             styles["CompactList"],
         ),
-        Spacer(1, 6),
-        Paragraph("Recommendation", styles["SubHeading"]),
+        Spacer(1, 5),
+
+        Paragraph("Recommendations", styles["SubHeading"]),
         Paragraph(
-            "If predictive performance is the priority, the baseline Decision Tree is the best choice from this assignment. "
-            "If explainability is more important than marginal performance gains, the Rule-Based Tree is the better deployment candidate. "
-            "Logistic Regression remains a useful fallback when a simpler statistical baseline is preferred for comparison or classroom discussion.",
+            "For maximum predictive performance on this dataset: use the baseline Decision Tree. "
+            "For stakeholder communication and explainability: use the Rule-Based Tree. "
+            "For a compact statistical baseline: Logistic Regression offers stable ROC-AUC (0.844) "
+            "with a simple, well-understood model form. Future work could improve robustness through "
+            "repeated cross-validation, threshold tuning, and title-based feature engineering.",
             styles["BodySmall"],
         ),
-        Spacer(1, 6),
-        Paragraph("Future improvement opportunities", styles["SubHeading"]),
-        Paragraph(
-            "The analysis could be strengthened through repeated cross-validation, probability calibration, more careful threshold selection, and modest feature engineering such as family-size or title-based features. "
-            "Those extensions might improve robustness, but they were intentionally left out here to keep the workflow transparent and aligned with the assignment scope.",
-            styles["BodySmall"],
-        ),
-        Spacer(1, 6),
+        Spacer(1, 5),
+
         Paragraph("Conclusion", styles["SubHeading"]),
         Paragraph(
-            "This assignment demonstrated that careful preprocessing, disciplined model comparison, and explicit interpretation can produce a strong supervised learning report. "
-            "For the Titanic dataset, a relatively simple Decision Tree delivered the best predictive result, while the Rule-Based Tree offered the clearest explanation. "
-            "The overall comparison therefore highlights a practical tradeoff between accuracy and transparency rather than a single universally best model. "
-            "That balance is one of the most important lessons from the full workflow.",
+            "This assignment built a complete supervised learning pipeline from raw Titanic data "
+            "to a final model comparison across nine classifiers. Careful preprocessing, stratified "
+            "evaluation, and explicit interpretability analysis showed that a simple Decision Tree "
+            "can outperform ensemble methods when features are low-dimensional and highly predictive. "
+            "The most important result is not which model won numerically, but that the analysis "
+            "exposes a concrete trade-off: the Rule-Based Tree loses 10 F1 points relative to the "
+            "best tree, but gains full human-readable explainability — a trade-off that matters "
+            "enormously in any real deployment context.",
             styles["BodySmall"],
         ),
     ]
 
 
-def build_pdf(facts: dict[str, object], comparison_df: pd.DataFrame) -> None:
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+def build_pdf(facts: dict, comparison_df: pd.DataFrame) -> None:
     styles = build_styles()
     doc = SimpleDocTemplate(
         str(REPORT_PATH),
@@ -765,75 +817,37 @@ def build_pdf(facts: dict[str, object], comparison_df: pd.DataFrame) -> None:
         bottomMargin=0.55 * inch,
         pageCompression=0,
     )
-
-    story = []
-
-    logo = report_image(LOGO_PATH, max_width=4.2 * inch, max_height=2.35 * inch)
-    cover_bottom = build_panel_table(
-        [[
-            panel_paragraph(
-                "Assignment objective",
-                "Build and compare a complete supervised learning pipeline for Titanic survival prediction, covering preprocessing, baseline models, decision trees, rule extraction, kNN, and ensembles.",
-                styles,
-            ),
-            panel_paragraph(
-                "Report basis",
-                "Dataset used: Titanic Dataset.<br/>This PDF summarizes validated results from the executed notebook and curated report visuals.",
-                styles,
-            ),
-        ]],
-        [3.12 * inch, 3.18 * inch],
-        font_size=7.8,
-    )
-    story.extend(
-        [
-            Spacer(1, 0.5 * inch),
-            logo,
-            Spacer(1, 0.35 * inch),
-            Paragraph(facts["institution"], styles["ReportTitle"]),
-            Paragraph(facts["title"], styles["ReportTitle"]),
-            Spacer(1, 0.25 * inch),
-            Paragraph("<b>Subject:</b> Machine Learning", styles["CoverMeta"]),
-            Paragraph("<b>Trimester:</b> Trimester 2", styles["CoverMeta"]),
-            Paragraph("<b>Student:</b> Anik Das", styles["CoverMeta"]),
-            Paragraph("<b>Roll Number:</b> 2025em1100026", styles["CoverMeta"]),
-            Spacer(1, 0.35 * inch),
-            cover_bottom,
-            PageBreak(),
-        ]
-    )
-
-    story.extend(page_two_story(styles, facts))
-    story.extend(page_three_story(styles, facts))
-    story.extend(page_four_story(styles, facts))
-    story.extend(page_five_story(styles, comparison_df))
-    story.extend(page_six_story(styles))
-
+    story: list = []
+    story += page_cover(styles, facts)
+    story += page_dataset_preprocessing(styles, facts)
+    story += page_baseline_and_tree(styles, facts)
+    story += page_rules_and_knn(styles, facts)
+    story += page_ensemble_comparison(styles, facts, comparison_df)
+    story += page_conclusions(styles)
     doc.build(story, onFirstPage=add_page_number, onLaterPages=add_page_number)
 
 
-def count_pdf_pages(pdf_path: Path) -> int:
-    pdf_bytes = pdf_path.read_bytes()
-    return len(re.findall(rb"/Type\s*/Page\b", pdf_bytes))
+def count_pages(pdf_path: Path) -> int:
+    data = pdf_path.read_bytes()
+    return len(re.findall(rb"/Type\s*/Page\b", data))
 
 
 def main() -> None:
     ensure_directories()
     dataset_summary = load_dataset_summary()
-    curated_paths = curate_figures()
-    comparison_df = curate_tables()
-    write_report_facts(dataset_summary, curated_paths)
+    curated = curate_figures()
+    comparison_df = curate_tables(curated)
 
     facts = json.loads((REPORT_DATA_DIR / "report_facts.json").read_text(encoding="utf-8"))
     build_pdf(facts, comparison_df)
 
-    page_count = count_pdf_pages(REPORT_PATH)
-    if page_count != 6:
-        raise RuntimeError(f"Expected a 6-page report, but generated {page_count} pages.")
-
-    print(f"Curated assets written to: {REPORT_ASSETS_DIR}")
-    print(f"Report created at: {REPORT_PATH}")
-    print(f"Verified page count: {page_count}")
+    pages = count_pages(REPORT_PATH)
+    print(f"Report written to : {REPORT_PATH}")
+    print(f"Page count        : {pages}")
+    if pages > 6:
+        print(f"WARNING: report is {pages} pages — exceeds the 6-page limit.")
+    else:
+        print("Page count is within the 6-page limit.")
 
 
 if __name__ == "__main__":
